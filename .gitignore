@@ -1,17 +1,12 @@
-# Environment and secrets
+# Secrets — never commit real API keys
 .env
+.env.local
+.env.*.local
+
+# Virtual environments
 .venv/
 venv/
 env/
-.env.example
-.env.example.txt
-.env.example.json
-.env.example.yaml
-.env.example.yml
-.env.example.ini
-.env.example.toml
-.env.example.xml
-.env.example.html
 
 # Python
 __pycache__/
@@ -40,4 +35,3 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
-

@@ -19,6 +19,11 @@ cp .env.example .env
 ```
 
 3. Open `.env` and paste **one** API key you have (or skip this if you will use Ollama only).
+
+   **Environment files (important):**
+   - `.env.example` — template in the repo (no secrets); do not put real keys here
+   - `.env` — your private copy with real keys; created by `cp .env.example .env`; never commit or push this file
+
 4. If using Ollama: install it from [ollama.com](https://ollama.com), then run `ollama serve` and `ollama pull llama3.2` (any installed model works).
 5. Start Jupyter from the project folder:
 
@@ -52,7 +57,8 @@ generative-ai-workshop/
 ├── src/                    ← helpers (LLM calls, prompts, tools, Gradio)
 ├── data/sample_texts/      ← example inputs
 ├── data/outputs/           ← saved notebook outputs
-├── .env.example            ← copy to .env and add keys
+├── .env.example            ← template (committed); copy to .env and add keys
+├── .env                    ← your secrets (local only — not in git)
 └── requirements.txt
 ```
 
@@ -61,6 +67,8 @@ generative-ai-workshop/
 ## Privacy
 
 Do not paste passwords, student records, exam scripts, or personal documents into cloud models. For sensitive work, use Ollama locally or anonymised data.
+
+**Do not commit `.env`.** Only `.env.example` belongs in the repository. If you accidentally commit a key, rotate it immediately on the provider’s website and remove the file from git history.
 
 ---
 

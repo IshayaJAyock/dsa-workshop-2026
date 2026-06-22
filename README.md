@@ -1,12 +1,12 @@
 # Generative AI Practical Workshop
 
-![Generative AI Practical Workshop — Prompting · LLM Apps · Tool Calling · Multimodal AI](assets/workshop_banner.png)
+![Generative AI Practical Workshop; Prompting · LLM Apps · Tool Calling · Multimodal AI](assets/workshop_banner.png)
 
-Hands-on materials for a university session on prompting, small LLM apps, and multimodal AI.
+Hands-on materials for prompting, small LLM apps, and multimodal AI.
 
-You will work mainly in **Jupyter notebooks**. The `src/` folder holds helper code so notebook cells stay short and readable — you are not expected to build a full production app.
+You will work mainly in **Jupyter notebooks**. The `src/` folder holds helper code or functions so notebook cells stay short and readable. You are not expected to build a full production app.
 
-**One cloud API key or Ollama is enough.** You do not need every provider in `.env.example`.
+**One cloud API key ($5 is enough) or Ollama is enough.** You do not need every provider in `.env.example`.
 
 ---
 
@@ -17,7 +17,7 @@ By the end of the three notebooks, you should be able to:
 - Write prompts that are clear enough to test and trust
 - Wrap a prompt in a simple interface other people can use
 - Combine an LLM with real tools (weather, exchange rates) and other outputs (audio, images)
-- Think about privacy, grounding, and responsible use in a university setting
+- Think about privacy, grounding, and responsible use in a academic setting
 
 ---
 
@@ -42,8 +42,8 @@ cp .env.example .env
 
 | File | Purpose |
 |------|---------|
-| `.env.example` | Template in the repo — variable names only, no real keys |
-| `.env` | Your private copy — paste real API keys here |
+| `.env.example` | Template in the repo, variable names only, no real keys |
+| `.env` | Your private copy, paste real API keys here |
 
 Open `.env` and add **one** provider you have access to, or skip this step if you will use **Ollama** locally.
 
@@ -51,7 +51,7 @@ Open `.env` and add **one** provider you have access to, or skip this step if yo
 
 ### 3. Optional: Ollama (local, no cloud key)
 
-1. Install from [ollama.com](https://ollama.com)
+1. Install from [ollama.com](https://ollama.com) (download the app based on your operating system)
 2. Run `ollama serve`
 3. Pull a model, e.g. `ollama pull llama3.2` (any installed model works)
 
@@ -65,7 +65,7 @@ jupyter notebook
 
 Open the notebooks **in order** and run cells from top to bottom.
 
-If you see `ModuleNotFoundError: No module named 'src'`, restart the kernel and re-run the first setup cell — or confirm you started Jupyter from the project root, not from inside `notebooks/`.
+If you see `ModuleNotFoundError: No module named 'src'`, restart the kernel and re-run the first setup cell or confirm you started Jupyter from the project root, not from inside `notebooks/`.
 
 ---
 
@@ -75,7 +75,7 @@ If you see `ModuleNotFoundError: No module named 'src'`, restart the kernel and 
 
 Work through these in order. Each one builds on the last.
 
-### Notebook 1 — Prompt Engineering Lab
+### Notebook 1: Prompt Engineering Lab
 
 **File:** `notebooks/01_prompt_engineering_lab.ipynb`
 
@@ -87,14 +87,14 @@ Most people type into ChatGPT and hope for the best. Here we slow down. You writ
 
 - Compare a vague prompt with a structured one on the same task
 - Practise summarising, classifying, and step-by-step reasoning
-- Use a simple rubric (clarity, faithfulness, usefulness, safety, …)
-- Try “LLM-as-judge” — and discuss why a human still needs to review the result
+- Use a simple rubric (clarity, faithfulness, usefulness, safety, etc.)
+- Try `LLM-as-judge`, and discuss why a human still needs to review the result
 
-**Main helpers used:** `src/llm_gateway.py`, `src/prompt_templates.py`, `src/output_formatting.py`
+**Main helpers functions used:** `src/llm_gateway.py`, `src/prompt_templates.py`, `src/output_formatting.py`
 
 ---
 
-### Notebook 2 — Build a Simple LLM App with Gradio
+### Notebook 2: Build a Simple LLM App with Gradio
 
 **File:** `notebooks/02_build_simple_llm_app_gradio.ipynb`
 
@@ -105,7 +105,7 @@ Notebook 1 was about the words you send to the model. This one is about **delive
 **What you will do:**
 
 - Call a learning-support function directly (no UI yet)
-- Launch a **Learning Support Assistant** — task type, audience, presets, export
+- Launch a **Learning Support Assistant**; task type, audience, presets, export
 - Build a **chatbot** and a **streaming chatbot** with Gradio
 - See why streaming feels faster even when total time is similar
 
@@ -113,7 +113,7 @@ Notebook 1 was about the words you send to the model. This one is about **delive
 
 ---
 
-### Notebook 3 — Multimodal Travel Guide Agent
+### Notebook 3: Multimodal Travel Guide Agent
 
 **File:** `notebooks/03_multimodal_tour_guide_agent.ipynb`
 
@@ -168,14 +168,14 @@ gradio_apps  →  show everything in one UI
 
 ```text
 generative-ai-workshop/
-├── notebooks/                 ← start here (01 → 02 → 03)
-├── src/                       ← helper modules (see table above)
+├── notebooks/                 <- start here (01 -> 02 -> 03)
+├── src/                       <- helper modules (see table above)
 ├── data/
-│   ├── sample_texts/          ← example inputs for Notebook 1
-│   └── outputs/               ← saved transcripts, images, logs
-├── assets/                    ← banner and workshop flow diagram (used in README & Notebook 1)
-├── .env.example               ← copy to .env (committed, no secrets)
-├── .env                       ← your keys (local only — gitignored)
+│   ├── sample_texts/          <- example inputs for Notebook 1
+│   └── outputs/               <- saved transcripts, images, logs
+├── assets/                    <- banner and workshop flow diagram (used in README & Notebook 1)
+├── .env.example               <- copy to .env (committed, no secrets)
+├── .env                       <- your keys (local only; gitignored)
 └── requirements.txt
 ```
 
@@ -213,13 +213,13 @@ Run `check_available_providers()` in the setup cells to see what is ready on you
 | `No module named 'src'` | Start Jupyter from the project root; re-run the first setup cell |
 | Ollama model not found | Run `ollama list` and use an installed model, or `ollama pull llama3.2` |
 | Gradio app errors on Send | Restart the kernel after pulling the latest code; confirm Ollama is running |
-| `load_dotenv` returns `False` | Normal if `.env` is missing — run `cp .env.example .env` |
+| `load_dotenv` returns `False` | Normal if `.env` is missing run `cp .env.example .env` |
 | Exchange rate error | Use valid 3-letter currency codes (e.g. `RWF`, `GHS`) |
 
 ---
 
 ## The point of the workshop
 
-Chatting with AI is easy. The skill is making outputs **useful, testable, and responsible** — especially when students and staff depend on them.
+Chatting with AI is easy. The skill is making outputs **useful, testable, and responsible**, especially when students and staff depend on them.
 
 Questions or improvements? Open an issue or talk to your facilitator after the session.

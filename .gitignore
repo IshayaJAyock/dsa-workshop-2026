@@ -3,6 +3,15 @@
 .venv/
 venv/
 env/
+.env.example
+.env.example.txt
+.env.example.json
+.env.example.yaml
+.env.example.yml
+.env.example.ini
+.env.example.toml
+.env.example.xml
+.env.example.html
 
 # Python
 __pycache__/

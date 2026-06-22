@@ -1,0 +1,31 @@
+# Notebook environment
+jupyter
+ipykernel
+python-dotenv
+pandas
+numpy
+requests
+
+# LLM providers (install all; you only need one API key)
+openai
+anthropic
+google-genai
+mistralai
+cohere
+
+# Local models
+ollama
+
+# App interface (Notebook 2 and 3) — pin to 3.x; chatbot uses tuple history format
+gradio>=3.18,<4.0
+
+# Travel tools and images (Notebook 3)
+geopy
+Pillow
+
+# Optional: audio on macOS uses built-in 'say'; these add cloud voices
+gTTS
+edge-tts
+
+# Optional: only if you have a Stability API key
+stability-sdk

@@ -1,0 +1,10 @@
+Title: Evaluating Prompt Strategies for Low-Resource Language Processing in African Educational Settings
+
+Abstract:
+This study investigates how prompt engineering and lightweight fine-tuning strategies can improve large language model performance on educational support tasks in low-resource language contexts. We compare zero-shot prompting, few-shot exemplar prompting, and retrieval-augmented generation across three task types: lecture summarisation, student question answering, and formative feedback generation. Our dataset includes anonymised course materials and synthetic student queries designed to reflect common support scenarios in computing and data science programmes.
+
+Results show that structured prompts with explicit role, output format, and faithfulness constraints reduce unsupported claims by 27% compared with naive prompts. Retrieval grounding further improves factual consistency for domain-specific content. However, gains vary by language and by task complexity. Models performed best on summarisation and weakest on nuanced academic advising tasks that require institutional policy knowledge.
+
+We conclude that prompt design alone is insufficient for high-stakes academic support, but it is a practical first step for universities exploring responsible AI adoption. We recommend combining prompt templates, human review, retrieval grounding, and clear escalation rules for wellbeing or policy-sensitive queries. Future work will evaluate multilingual prompt templates and local open-weight models for privacy-sensitive campus use cases.
+
+Keywords: prompt engineering, retrieval-augmented generation, educational AI, low-resource languages, responsible AI

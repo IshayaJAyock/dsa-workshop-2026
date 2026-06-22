@@ -1,0 +1,9 @@
+message_id,message,expected_label
+1,"I cannot access the lecture slides for module DSA301. The link in the portal returns a 404 error.",Technical Support
+2,"I am feeling overwhelmed and have not been sleeping well during exam season. I am worried I might fail.",Wellbeing Concern
+3,"Could you confirm whether the assignment deadline extension applies to students who were ill last week?",Administrative Support
+4,"I do not understand the difference between precision and recall in the classification notebook.",Academic Support
+5,"My laptop crashes whenever I run the Jupyter kernel for the neural network practical.",Technical Support
+6,"I need advice on whether I should change my dissertation topic because my supervisor is unavailable for two weeks.",Academic Support
+7,"I lost my student ID card and need to know the replacement process and cost.",Administrative Support
+8,"I have been anxious about presenting in class and would like to speak to someone confidentially.",Wellbeing Concern

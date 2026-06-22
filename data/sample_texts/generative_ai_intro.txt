@@ -1,0 +1,16 @@
+Generative AI is a branch of artificial intelligence focused on creating new content such as text, images, audio, code, and video. Instead of only classifying or predicting from existing data, generative systems learn patterns from large datasets and use those patterns to produce novel outputs.
+
+Large Language Models (LLMs) are one of the most visible examples of generative AI. They are trained on vast collections of text and can answer questions, summarise documents, translate languages, write drafts, and help with coding tasks. However, their outputs are probabilistic. That means the model predicts likely next words rather than retrieving verified facts from a database.
+
+For students, this distinction matters. A generative model can be very helpful for explanation, brainstorming, and drafting, but it can also sound confident while being incomplete or incorrect. Good AI practice therefore includes prompt design, output checking, and responsible use.
+
+In university settings, generative AI can support learning when used carefully. It can explain difficult concepts in simpler language, generate practice questions, summarise long readings, and help students structure their thinking. It should not replace critical reading, ethical judgement, or human feedback.
+
+Key ideas to remember:
+1. Generative AI creates content; it does not guarantee truth.
+2. Prompt quality strongly affects output quality.
+3. Testing and evaluation are as important as writing the prompt.
+4. Privacy matters: avoid pasting sensitive personal or institutional data into cloud tools.
+5. Local models and smaller tasks may be better when privacy or offline access is important.
+
+This workshop moves from basic prompting to building small applications that use external tools, interfaces, and multimodal outputs. The goal is not to impress you with flashy demos. The goal is to help you build controlled, useful, and testable AI workflows.

@@ -20,13 +20,13 @@ from src.output_formatting import (
     format_tool_evidence_dataframe,
     format_travel_brief_markdown,
     media_path_for_gradio,
-    strip_markdown_for_speech,
 )
 from src.prompt_templates import (
     PROMPT_PRESETS,
     build_learning_support_prompt,
     build_travel_brief_prompt,
 )
+from src.tour_session import TourSession
 from src.utils import APP_TRANSCRIPTS_DIR, save_text_output
 
 # ---------------------------------------------------------------------------
@@ -77,8 +77,7 @@ def generate_learning_support(
 
 
 def build_learning_support_app() -> gr.Blocks:
-    """Build the structured learning support Gradio app."""
-    provider_choices = _provider_choices()
+    """Build a simple learning support Gradio app for Notebook 2."""
     task_types = [
         "Explain simply",
         "Summarise",
@@ -87,107 +86,102 @@ def build_learning_support_app() -> gr.Blocks:
         "Rewrite for beginners",
         "Create study notes",
     ]
-    audiences = [
-        "undergraduate students",
-        "postgraduate students",
-        "first-year students",
-        "workshop participants",
-    ]
+    default_audience = "undergraduate students"
+    default_system = "You are a helpful and responsible university learning assistant."
+    default_temperature = 0.3
+    default_max_tokens = 1000
+
+    def _system_prompt_for_task(task_value: str) -> str:
+        for preset in PROMPT_PRESETS.values():
+            if preset["task_type"] == task_value:
+                return preset["system_prompt"]
+        return default_system
 
     with gr.Blocks(title="Learning Support Assistant") as demo:
-        gr.Markdown("# Learning Support Assistant")
+        gr.Markdown(
+            "# Learning Support Assistant\n\n"
+            "Paste your source text, choose what you need, and click **Generate**."
+        )
         gr.Markdown(PRIVATE_DATA_WARNING)
 
         with gr.Row():
             with gr.Column():
-                user_text = gr.Textbox(label="Source text", lines=8)
-                preset = gr.Dropdown(
-                    label="Prompt preset library",
-                    choices=list(PROMPT_PRESETS.keys()),
-                    value=None,
+                user_text = gr.Textbox(
+                    label="Source text",
+                    lines=10,
+                    placeholder="Paste a paragraph from a lecture, article, or your notes…",
                 )
-                task_type = gr.Dropdown(label="Task type", choices=task_types, value=task_types[0])
-                audience = gr.Dropdown(label="Audience", choices=audiences, value=audiences[0])
-                provider = gr.Dropdown(label="Provider", choices=provider_choices, value="auto")
-                temperature = gr.Slider(0, 1, value=0.3, label="Temperature")
-                max_tokens = gr.Slider(200, 2000, value=1000, step=50, label="Max tokens")
-                system_prompt = gr.Textbox(
-                    label="System prompt",
-                    value="You are a helpful and responsible university learning assistant.",
+                task_type = gr.Dropdown(
+                    label="What do you need?",
+                    choices=task_types,
+                    value=task_types[0],
                 )
-                generate_btn = gr.Button("Generate", variant="primary")
-                clear_btn = gr.Button("Clear")
-                export_btn = gr.Button("Export output")
+                with gr.Row():
+                    generate_btn = gr.Button("Generate", variant="primary")
+                    clear_btn = gr.Button("Clear")
+
+                gr.Examples(
+                    examples=[
+                        [
+                            "Transformers use attention mechanisms to weigh relationships between tokens in a sequence.",
+                            "Explain simply",
+                        ],
+                        [
+                            "Overfitting happens when a model memorises training data and performs poorly on new data.",
+                            "Create study notes",
+                        ],
+                    ],
+                    inputs=[user_text, task_type],
+                    label="Try an example",
+                )
             with gr.Column():
-                provider_status = gr.JSON(label="Provider status", value=check_available_providers())
-                prompt_preview = gr.Textbox(label="Prompt preview", lines=10)
-                output = gr.Markdown(label="Output")
-                export_status = gr.Textbox(label="Export status", interactive=False)
+                output = gr.Markdown(value="_Your answer will appear here._")
+                status = gr.Textbox(label="Status", interactive=False, value="Ready.")
 
-        def preview_prompt(text, audience_value, task_value):
+        def run_app(text, task_value):
+            text = text or ""
+            task_value = task_value or task_types[0]
             if not text.strip():
-                return "Enter source text to preview the prompt."
-            return build_learning_support_prompt(text, audience_value, task_value)
-
-        def apply_preset(preset_name, text):
-            if not preset_name:
-                return gr.update(), gr.update(), gr.update(), text
-            preset = PROMPT_PRESETS[preset_name]
-            return (
-                preset["task_type"],
-                preset["audience"],
-                preset["system_prompt"],
-                text,
-            )
-
-        def run_app(text, audience_value, task_value, provider_value, temp, tokens, system):
+                return "_Enter some source text first._", "Nothing to generate."
             try:
                 result = generate_learning_support(
-                    text, audience_value, task_value, provider_value, temp, tokens, system
+                    text,
+                    default_audience,
+                    task_value,
+                    provider="auto",
+                    temperature=default_temperature,
+                    max_tokens=default_max_tokens,
+                    system_prompt=_system_prompt_for_task(task_value),
                 )
-                return result, "Generation complete."
+                return str(result), "Done."
             except Exception as exc:
-                return format_error_markdown("learning support generation", exc), "Generation failed."
+                message = f"**Generation failed:** {exc}"
+                return message, f"Failed: {exc}"
 
-        def export_output(content):
-            if not content or content.startswith("Error:"):
-                return "Nothing to export."
-            path = save_text_output(content, APP_TRANSCRIPTS_DIR, "learning_support", "md")
-            return f"Saved to {path}"
-
-        preset.change(
-            apply_preset,
-            inputs=[preset, user_text],
-            outputs=[task_type, audience, system_prompt, user_text],
-        )
-        user_text.change(
-            preview_prompt,
-            inputs=[user_text, audience, task_type],
-            outputs=prompt_preview,
-        )
         generate_btn.click(
             run_app,
-            inputs=[user_text, audience, task_type, provider, temperature, max_tokens, system_prompt],
-            outputs=[output, export_status],
+            inputs=[user_text, task_type],
+            outputs=[output, status],
+            queue=True,
         )
         clear_btn.click(
-            lambda: ("", "", "Cleared."),
-            outputs=[user_text, output, export_status],
-        )
-        export_btn.click(export_output, inputs=output, outputs=export_status)
-
-        gr.Examples(
-            examples=[
-                ["Transformers use attention mechanisms to weigh relationships between tokens in a sequence.", "Explain like a lecturer"],
-                ["Overfitting happens when a model memorises training data and performs poorly on new data.", "Create study notes"],
-            ],
-            inputs=[user_text, preset],
+            lambda: ("", task_types[0], "_Your answer will appear here._", "Cleared."),
+            outputs=[user_text, task_type, output, status],
+            queue=False,
         )
 
+    demo.queue(concurrency_count=1)
     return demo
 
 
-def respond_chat(message: str, history: list | None, provider: str, system_prompt: str, temperature: float, max_tokens: int):
+def respond_chat(
+    message: str,
+    history: list | None,
+    provider: str = "auto",
+    system_prompt: str = "You are a helpful university learning assistant.",
+    temperature: float = 0.3,
+    max_tokens: int = 1000,
+):
     """Non-streaming chat response."""
     history = _normalize_history(history)
     if not message.strip():
@@ -202,16 +196,16 @@ def respond_chat(message: str, history: list | None, provider: str, system_promp
         )
         return history + [[message, format_llm_response_markdown(reply)]], ""
     except Exception as exc:
-        return history + [[message, format_error_markdown("chat response", exc)]], ""
+        return history + [[message, f"**Error:** {exc}"]], ""
 
 
 def respond_streaming(
     message: str,
     history: list | None,
-    provider: str,
-    system_prompt: str,
-    temperature: float,
-    max_tokens: int,
+    provider: str = "auto",
+    system_prompt: str = "You are a helpful university learning assistant.",
+    temperature: float = 0.3,
+    max_tokens: int = 1000,
 ) -> Generator[tuple[list, str], None, None]:
     """Streaming chat response for Gradio."""
     history = _normalize_history(history)
@@ -219,7 +213,7 @@ def respond_streaming(
         yield history, ""
         return
 
-    history = history + [[message, ""]]
+    reply = ""
     try:
         for chunk in stream_llm(
             message,
@@ -228,61 +222,92 @@ def respond_streaming(
             temperature=temperature,
             max_tokens=max_tokens,
         ):
-            history[-1][1] += chunk
-            yield history, ""
+            reply += chunk
+            yield history + [[message, reply]], ""
     except Exception as exc:
-        history[-1][1] = format_error_markdown("streaming response", exc)
-        yield history, ""
+        yield history + [[message, f"**Error:** {exc}"]], ""
 
 
 def build_chatbot_app(streaming: bool = False) -> gr.Blocks:
-    """Build a chatbot-style app with optional streaming."""
-    provider_choices = _provider_choices()
+    """Build a simple chatbot app with optional streaming."""
     title = "Streaming Learning Chatbot" if streaming else "Learning Chatbot"
+    default_system = "You are a helpful university learning assistant."
+    default_temperature = 0.3
+    default_max_tokens = 1000
 
     with gr.Blocks(title=title) as demo:
         gr.Markdown(f"# {title}")
+        if streaming:
+            gr.Markdown(
+                "Ask a study question below. Replies stream in token by token. "
+                "Uses provider `auto` (Ollama or your API key)."
+            )
+        else:
+            gr.Markdown("Ask a study question below. Uses provider `auto`.")
         gr.Markdown(PRIVATE_DATA_WARNING)
 
         chatbot = gr.Chatbot(label="Conversation")
-        msg = gr.Textbox(label="Your message")
-        provider = gr.Dropdown(label="Provider", choices=provider_choices, value="auto")
-        system_prompt = gr.Textbox(
-            label="System prompt",
-            value="You are a helpful university learning assistant.",
+        msg = gr.Textbox(
+            label="Your message",
+            placeholder="e.g. Explain overfitting in simple terms…",
         )
-        temperature = gr.Slider(0, 1, value=0.3, label="Temperature")
-        max_tokens = gr.Slider(200, 2000, value=1000, step=50, label="Max tokens")
 
         with gr.Row():
             send = gr.Button("Send", variant="primary")
             clear = gr.Button("Clear")
-            export = gr.Button("Export chat")
 
-        export_status = gr.Textbox(label="Export status", interactive=False)
+        def send_chat(message, history):
+            return respond_chat(
+                message,
+                history,
+                provider="auto",
+                system_prompt=default_system,
+                temperature=default_temperature,
+                max_tokens=default_max_tokens,
+            )
 
-        chat_inputs = [msg, chatbot, provider, system_prompt, temperature, max_tokens]
-        chat_outputs = [chatbot, msg]
+        def send_stream(message, history):
+            yield from respond_streaming(
+                message,
+                history,
+                provider="auto",
+                system_prompt=default_system,
+                temperature=default_temperature,
+                max_tokens=default_max_tokens,
+            )
 
-        def export_chat(history: list | None) -> str:
-            history = _normalize_history(history)
-            if not history:
-                return "Nothing to export."
-            transcript = "\n\n".join(f"User: {u}\nAssistant: {a}" for u, a in history)
-            path = save_text_output(transcript, APP_TRANSCRIPTS_DIR, "chat_transcript", "txt")
-            return f"Saved to {path}"
+        respond_fn = send_stream if streaming else send_chat
+        send.click(
+            respond_fn,
+            inputs=[msg, chatbot],
+            outputs=[chatbot, msg],
+            queue=True,
+        )
+        msg.submit(
+            respond_fn,
+            inputs=[msg, chatbot],
+            outputs=[chatbot, msg],
+            queue=True,
+        )
+        clear.click(lambda: ([], ""), outputs=[chatbot, msg], queue=False)
 
-        respond_fn = respond_streaming if streaming else respond_chat
-        send.click(respond_fn, inputs=chat_inputs, outputs=chat_outputs)
-        msg.submit(respond_fn, inputs=chat_inputs, outputs=chat_outputs)
-
-        clear.click(lambda: ([], ""), outputs=[chatbot, msg])
-        export.click(export_chat, inputs=chatbot, outputs=export_status)
-
+    demo.queue(concurrency_count=1)
     return demo
 
 
-def run_tour_guide_pipeline(
+def _empty_tour_outputs() -> tuple:
+    empty_places = format_places_dataframe([])
+    empty_tools = pd.DataFrame(columns=["Source", "Fact", "Value"])
+    return (
+        "_Your travel brief will appear here._",
+        empty_tools,
+        empty_places,
+        None,
+        "Ready.",
+    )
+
+
+def run_tour_guide_progressive(
     base_city: str,
     base_country: str,
     destination_city: str,
@@ -292,29 +317,24 @@ def run_tour_guide_pipeline(
     traveller_profile: str,
     provider_value: str = "auto",
     temperature: float = 0.3,
-    max_tokens: int = 1200,
+    max_tokens: int = 800,
     amount: float = 100.0,
-):
-    """
-    Run the notebook 3 travel workflow.
-
-    Yields (brief_md, tool_df, places_df, audio_path, poster_path, status)
-    so Gradio can show progress between slow steps.
-    """
-    from src.image_generation import generate_travel_poster, text_to_speech
+) -> Generator[tuple, None, None]:
+    """Run the travel workflow, yielding partial results for Gradio status updates."""
+    from src.image_generation import generate_travel_poster
     from src.travel_tools import gather_travel_tool_results
 
-    empty_places = format_places_dataframe([])
+    brief_md, tool_df, places_df, poster_out, _ = _empty_tour_outputs()
 
     try:
         yield (
-            "_Fetching live travel data…_",
-            pd.DataFrame(),
-            empty_places,
-            None,
-            None,
-            "Step 1/4 — calling weather, distance, exchange, and places tools…",
+            brief_md,
+            tool_df,
+            places_df,
+            poster_out,
+            "Fetching weather, distance, exchange rate, and places…",
         )
+
         evidence = gather_travel_tool_results(
             base_city,
             base_country,
@@ -326,15 +346,14 @@ def run_tour_guide_pipeline(
         )
         tool_df = format_tool_evidence_dataframe(evidence)
         places_df = format_places_dataframe(evidence["places"])
-
         yield (
-            "_Generating grounded travel brief…_",
+            "_Writing your travel brief — this usually takes 20–40 seconds…_",
             tool_df,
             places_df,
             None,
-            None,
-            "Step 2/4 — writing brief with the LLM…",
+            "Tool data ready. Calling the LLM…",
         )
+
         prompt = build_travel_brief_prompt(
             base_city,
             base_country,
@@ -359,90 +378,165 @@ def run_tour_guide_pipeline(
             destination_city,
             destination_country,
         )
-
         yield (
             brief_md,
             tool_df,
             places_df,
             None,
-            None,
-            "Step 3/4 — creating audio reading…",
+            "Brief ready. Creating travel poster…",
         )
-        speech_text = strip_markdown_for_speech(brief)
-        audio_path = text_to_speech(speech_text)
 
-        yield (
-            brief_md,
-            tool_df,
-            places_df,
-            media_path_for_gradio(audio_path),
-            None,
-            "Step 4/4 — creating travel poster…",
-        )
         poster = generate_travel_poster(
             destination_city,
             destination_country,
             evidence["places"],
+            fast=True,
         )
 
         yield (
             brief_md,
             tool_df,
             places_df,
-            media_path_for_gradio(audio_path),
             media_path_for_gradio(poster["path"]),
-            "Done — brief, audio, and poster are ready.",
+            "Done — brief and poster are ready.",
         )
     except Exception as exc:
+        _, empty_tools, empty_places, _, _ = _empty_tour_outputs()
         yield (
-            format_error_markdown("travel guide", exc),
-            pd.DataFrame(),
+            f"**Generation failed:** {exc}",
+            empty_tools,
             empty_places,
-            None,
             None,
             f"Failed: {exc}",
         )
 
 
+def run_tour_guide_once(
+    base_city: str,
+    base_country: str,
+    destination_city: str,
+    destination_country: str,
+    base_currency: str,
+    destination_currency: str,
+    traveller_profile: str,
+    provider_value: str = "auto",
+    temperature: float = 0.3,
+    max_tokens: int = 800,
+    amount: float = 100.0,
+) -> tuple:
+    """Run the full notebook 3 travel workflow and return all outputs at once."""
+    result = None
+    for result in run_tour_guide_progressive(
+        base_city,
+        base_country,
+        destination_city,
+        destination_country,
+        base_currency,
+        destination_currency,
+        traveller_profile,
+        provider_value=provider_value,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        amount=amount,
+    ):
+        pass
+    return result if result is not None else _empty_tour_outputs()
+
+
+def run_tour_guide_pipeline(
+    base_city: str,
+    base_country: str,
+    destination_city: str,
+    destination_country: str,
+    base_currency: str,
+    destination_currency: str,
+    traveller_profile: str,
+    provider_value: str = "auto",
+    temperature: float = 0.3,
+    max_tokens: int = 800,
+    amount: float = 100.0,
+):
+    """Backward-compatible wrapper used in tests."""
+    yield run_tour_guide_once(
+        base_city,
+        base_country,
+        destination_city,
+        destination_country,
+        base_currency,
+        destination_currency,
+        traveller_profile,
+        provider_value,
+        temperature,
+        max_tokens,
+        amount,
+    )
+
+
 def build_tour_guide_app() -> gr.Blocks:
-    """Build the multimodal African travel guide app."""
-    provider_choices = _provider_choices()
+    """Build a simple multimodal African travel guide app."""
+    default_profile = "data scientist attending an AI workshop"
 
     with gr.Blocks(title="African Travel Guide for Data Scientists") as demo:
-        gr.Markdown("# African Travel Guide for Data Scientists")
         gr.Markdown(
-            "**Verify Before Travel:** Check official sources for visas, health guidance, "
-            "and safety updates before making real travel plans."
+            "# African Travel Guide for Data Scientists\n\n"
+            "Enter your trip details and click **Generate travel brief**. "
+            "Tool data appears in a few seconds; the LLM brief takes 20–40 seconds; "
+            "then a travel poster is generated. Watch **Status** for each step."
+        )
+        gr.Markdown(
+            "**Verify before travel:** check official sources for visas, health, "
+            "and safety updates. This is a teaching demo, not live travel advice."
         )
 
         with gr.Row():
             with gr.Column():
-                base_city = gr.Textbox(value="Kigali", label="Base city")
-                base_country = gr.Textbox(value="Rwanda", label="Base country")
-                destination_city = gr.Textbox(value="Accra", label="Destination city")
-                destination_country = gr.Textbox(value="Ghana", label="Destination country")
-                base_currency = gr.Textbox(value="RWF", label="Base currency code")
-                destination_currency = gr.Textbox(value="GHS", label="Destination currency code")
+                gr.Markdown("### Your trip")
+                with gr.Row():
+                    base_city = gr.Textbox(value="Kigali", label="From (city)")
+                    base_country = gr.Textbox(value="Rwanda", label="Country")
+                with gr.Row():
+                    destination_city = gr.Textbox(value="Accra", label="To (city)")
+                    destination_country = gr.Textbox(value="Ghana", label="Country")
+                with gr.Row():
+                    base_currency = gr.Textbox(value="RWF", label="Home currency")
+                    destination_currency = gr.Textbox(value="GHS", label="Dest. currency")
                 traveller_profile = gr.Textbox(
-                    value="data scientist attending an AI workshop",
+                    value=default_profile,
                     label="Traveller profile",
                 )
-                provider = gr.Dropdown(label="Provider", choices=provider_choices, value="auto")
-                temperature = gr.Slider(0, 1, value=0.3, label="Temperature")
                 generate_btn = gr.Button("Generate travel brief", variant="primary")
 
             with gr.Column():
-                travel_brief = gr.Markdown(value="_Your travel brief will appear here._")
                 status = gr.Textbox(label="Status", interactive=False, value="Ready.")
+                travel_brief = gr.Markdown(value="_Your travel brief will appear here._")
                 tool_table = gr.Dataframe(label="Tool evidence")
                 places_table = gr.Dataframe(label="Top 3 places")
 
-        with gr.Row():
-            audio_output = gr.Audio(label="Audio reading", type="filepath")
-            poster_output = gr.Image(label="Travel poster", type="filepath")
+        poster_output = gr.Image(label="Travel poster", type="filepath")
+
+        def generate_travel_guide(
+            b_city,
+            b_country,
+            d_city,
+            d_country,
+            b_curr,
+            d_curr,
+            profile,
+        ):
+            yield from run_tour_guide_progressive(
+                b_city,
+                b_country,
+                d_city,
+                d_country,
+                b_curr,
+                d_curr,
+                profile,
+                provider_value="auto",
+                temperature=0.3,
+            )
 
         generate_btn.click(
-            run_tour_guide_pipeline,
+            generate_travel_guide,
             inputs=[
                 base_city,
                 base_country,
@@ -451,10 +545,130 @@ def build_tour_guide_app() -> gr.Blocks:
                 base_currency,
                 destination_currency,
                 traveller_profile,
-                provider,
-                temperature,
             ],
-            outputs=[travel_brief, tool_table, places_table, audio_output, poster_output, status],
+            outputs=[travel_brief, tool_table, places_table, poster_output, status],
+            queue=True,
         )
 
+    demo.queue(concurrency_count=1)
+    return demo
+
+
+def build_tour_guide_preview_app(session: TourSession) -> gr.Blocks:
+    """Instant multimodal UI — shows what the student already built in the notebook."""
+    poster_path = session.poster_path or None
+
+    with gr.Blocks(title="Multimodal Travel Guide — Preview") as demo:
+        gr.Markdown(
+            "# Multimodal Travel Guide\n\n"
+            f"**Route:** {session.route_label}\n\n"
+            "This app opens **instantly** with the text brief and poster you already "
+            "created in the notebook. Same agent workflow — two output types "
+            "(**text** + **image**)."
+        )
+        gr.Markdown(
+            "_To change the trip, edit Step 2 in the notebook and re-run Steps 3–7._"
+        )
+
+        with gr.Row():
+            with gr.Column(scale=1):
+                gr.Markdown("### Pipeline recap")
+                gr.Markdown(
+                    "1. **Tools** → weather, distance, exchange, places\n"
+                    "2. **LLM** → grounded text brief\n"
+                    "3. **Code** → travel poster image\n"
+                    "4. **Gradio** → one UI for both modalities"
+                )
+                refresh_btn = gr.Button("Refresh preview", variant="primary")
+            with gr.Column(scale=2):
+                status = gr.Textbox(
+                    label="Status",
+                    interactive=False,
+                    value="Loaded from your notebook — no extra wait.",
+                )
+                travel_brief = gr.Markdown(value=session.brief_md)
+                tool_table = gr.Dataframe(value=session.tool_df, label="Tool evidence")
+                places_table = gr.Dataframe(value=session.places_df, label="Top 3 places")
+                poster_output = gr.Image(
+                    value=poster_path,
+                    label="Travel poster (image modality)",
+                    type="filepath",
+                )
+
+        with gr.Accordion("Optional: generate a different trip (slow — 20–40s)", open=False):
+            gr.Markdown(
+                "Only use this if you want the app to re-run tools + LLM + poster. "
+                "For class, it is faster to edit the notebook and re-launch the preview."
+            )
+            with gr.Row():
+                base_city = gr.Textbox(value=session.base_city, label="From (city)")
+                base_country = gr.Textbox(value=session.base_country, label="Country")
+            with gr.Row():
+                destination_city = gr.Textbox(value=session.destination_city, label="To (city)")
+                destination_country = gr.Textbox(
+                    value=session.destination_country, label="Country"
+                )
+            with gr.Row():
+                base_currency = gr.Textbox(value=session.base_currency, label="Home currency")
+                destination_currency = gr.Textbox(
+                    value=session.destination_currency, label="Dest. currency"
+                )
+            traveller_profile = gr.Textbox(
+                value=session.traveller_profile, label="Traveller profile"
+            )
+            generate_btn = gr.Button("Regenerate full trip")
+
+            def regenerate_trip(
+                b_city,
+                b_country,
+                d_city,
+                d_country,
+                b_curr,
+                d_curr,
+                profile,
+            ):
+                yield from run_tour_guide_progressive(
+                    b_city,
+                    b_country,
+                    d_city,
+                    d_country,
+                    b_curr,
+                    d_curr,
+                    profile,
+                    provider_value="auto",
+                    temperature=0.3,
+                    max_tokens=500,
+                )
+
+            generate_btn.click(
+                regenerate_trip,
+                inputs=[
+                    base_city,
+                    base_country,
+                    destination_city,
+                    destination_country,
+                    base_currency,
+                    destination_currency,
+                    traveller_profile,
+                ],
+                outputs=[travel_brief, tool_table, places_table, poster_output, status],
+                queue=True,
+            )
+
+        def show_preview():
+            return (
+                session.brief_md,
+                session.tool_df,
+                session.places_df,
+                poster_path,
+                "Showing your notebook travel guide (instant).",
+            )
+
+        refresh_btn.click(
+            show_preview,
+            outputs=[travel_brief, tool_table, places_table, poster_output, status],
+            queue=False,
+        )
+
+    demo.queue(concurrency_count=1)
     return demo

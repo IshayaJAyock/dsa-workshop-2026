@@ -152,11 +152,20 @@ def generate_travel_poster(
     destination_country: str,
     places: list[dict[str, str]],
     output_path: str | Path | None = None,
+    fast: bool = False,
 ) -> dict[str, Any]:
-    """Try cloud image APIs, then fall back to PIL poster."""
+    """Try cloud image APIs, then fall back to PIL poster.
+
+    Set ``fast=True`` in class demos to skip slow cloud APIs and use Pillow only.
+    """
     if output_path is None:
         safe_name = destination_city.lower().replace(" ", "_")
         output_path = GENERATED_IMAGES_DIR / f"travel_poster_{safe_name}.png"
+
+    if fast:
+        return generate_travel_poster_with_pil(
+            destination_city, destination_country, places, output_path
+        )
 
     prompt = build_travel_image_prompt(destination_city, destination_country, places)
 
@@ -275,30 +284,35 @@ def text_to_speech(text: str, output_path: str | Path | None = None) -> str:
     """
     Generate audio for the travel guide demo.
 
-    Fallback order (first success wins):
-    1. edge-tts
-    2. gTTS
-    3. macOS built-in `say` command
+    On macOS, the built-in `say` command is tried first for speed.
+    Otherwise: edge-tts, then gTTS, then macOS `say`.
     """
     if output_path is None:
         output_path = GENERATED_IMAGES_DIR.parent / "travel_brief.mp3"
 
     errors: list[str] = []
+    providers: list[tuple[str, Any]] = []
 
-    try:
-        return _run_async(text_to_speech_edge(text, output_path))
-    except Exception as exc:
-        errors.append(f"edge-tts failed: {exc}")
+    if platform.system() == "Darwin" and shutil.which("say"):
+        providers.append(("macOS say", lambda: text_to_speech_macos(text, output_path)))
+    providers.extend(
+        [
+            ("edge-tts", lambda: _run_async(text_to_speech_edge(text, output_path))),
+            ("gTTS", lambda: text_to_speech_gtts(text, output_path)),
+        ]
+    )
+    if platform.system() == "Darwin" and shutil.which("say"):
+        providers.append(("macOS say", lambda: text_to_speech_macos(text, output_path)))
 
-    try:
-        return text_to_speech_gtts(text, output_path)
-    except Exception as exc:
-        errors.append(f"gTTS failed: {exc}")
-
-    try:
-        return text_to_speech_macos(text, output_path)
-    except Exception as exc:
-        errors.append(f"macOS say failed: {exc}")
+    seen: set[str] = set()
+    for name, synthesize in providers:
+        if name in seen:
+            continue
+        seen.add(name)
+        try:
+            return synthesize()
+        except Exception as exc:
+            errors.append(f"{name} failed: {exc}")
 
     raise RuntimeError(
         "Text-to-speech failed. "

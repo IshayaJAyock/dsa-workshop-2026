@@ -16,7 +16,7 @@ By the end of the three notebooks, you should be able to:
 
 - Write prompts that are clear enough to test and trust
 - Wrap a prompt in a simple interface other people can use
-- Combine an LLM with real tools (weather, exchange rates) and other outputs (audio, images)
+- Combine an LLM with real tools (weather, exchange rates) and other outputs (text brief + image)
 - Think about privacy, grounding, and responsible use in a academic setting
 
 ---
@@ -119,14 +119,14 @@ Notebook 1 was about the words you send to the model. This one is about **delive
 
 **Big question:** How do you stop the model from guessing facts it should look up?
 
-Imagine travelling from your city to an African city for a workshop. You want real weather and exchange-rate data, a grounded written brief, and optional audio and a poster.
+Imagine travelling from your city to an African city for a workshop. You want real weather and exchange-rate data, a grounded written brief, and a travel poster image.
 
 **What you will do:**
 
 - Call travel tools **before** the LLM (weather, distance, exchange rate, places)
 - Pass tool results into the prompt so the model explains facts instead of inventing them
-- Generate audio (text-to-speech) and a travel poster
-- Launch the full **Tour Guide** Gradio app
+- Generate a travel poster (`fast=True` in class for a ~1s Pillow poster)
+- See **text + image** together in the notebook, then open an **instant** Gradio preview
 
 **Main helpers used:** `src/travel_tools.py`, `src/image_generation.py`, `src/gradio_apps.py`, `src/prompt_templates.py`, `src/output_formatting.py`
 
@@ -142,9 +142,10 @@ You can complete the workshop from the notebooks alone. Open these files when yo
 |------|----------------|---------|
 | `llm_gateway.py` | One place to call cloud APIs and Ollama. Includes `run_llm()`, `stream_llm()`, and `check_available_providers()`. With `provider="auto"`, it picks the first provider that is configured and available. | All notebooks |
 | `prompt_templates.py` | Reusable prompt patterns: learning support, travel brief, presets, and a simple evaluation rubric. | Notebooks 1–3 |
-| `gradio_apps.py` | Gradio interfaces: learning support app, chatbots (with optional streaming), and the multimodal tour guide. | Notebooks 2–3 |
+| `gradio_apps.py` | Gradio interfaces: learning support app, chatbots (with optional streaming), tour guide, and **instant preview** from notebook session. | Notebooks 2–3 |
+| `tour_session.py` | Packs notebook variables (`brief_md`, tables, poster) for the instant Gradio preview. | Notebook 3 |
 | `travel_tools.py` | Fetches weather, distance, exchange rates, and suggested places. Facts come from APIs or curated fallbacks — not from the LLM. | Notebook 3 |
-| `image_generation.py` | Text-to-speech and travel poster generation (cloud image APIs when keys exist; Pillow fallback offline). | Notebook 3 |
+| `image_generation.py` | Travel poster generation (cloud image APIs when keys exist; Pillow fallback offline). Also includes optional text-to-speech helpers. | Notebook 3 |
 | `output_formatting.py` | Turns raw LLM text into readable markdown and nicer tables for notebooks and Gradio. | Notebooks 1–3 |
 | `utils.py` | Paths, loading `.env`, reading sample texts, saving outputs to `data/outputs/`. | All helpers |
 
@@ -157,9 +158,11 @@ prompt_templates  →  build grounded prompt
       ↓
 llm_gateway  →  generate brief
       ↓
-image_generation  →  audio + poster
+image_generation  →  poster (fast Pillow in class)
       ↓
-gradio_apps  →  show everything in one UI
+tour_session  →  pack text + image for UI
+      ↓
+gradio_apps  →  instant multimodal preview
 ```
 
 ---

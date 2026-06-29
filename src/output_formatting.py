@@ -12,14 +12,15 @@ from src.utils import PROJECT_ROOT
 
 
 def media_path_for_gradio(path: str | Path | None) -> str | None:
-    """Prefer project-relative paths so Gradio can serve files reliably."""
+    """Return an absolute path Gradio can load, even when Jupyter cwd is notebooks/."""
     if not path:
         return None
-    resolved = Path(path).resolve()
-    try:
-        return resolved.relative_to(PROJECT_ROOT.resolve()).as_posix()
-    except ValueError:
-        return str(resolved)
+    candidates = [Path(path), PROJECT_ROOT / path]
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved.exists():
+            return str(resolved)
+    return str(Path(path).resolve())
 
 
 def strip_markdown_for_speech(text: str, max_chars: int = 1200) -> str:
@@ -198,3 +199,42 @@ def format_error_markdown(step: str, exc: Exception) -> str:
         "**Try:** check internet access, currency codes (e.g. RWF, GHS), "
         "that Ollama or your API key is ready, then click Generate again."
     )
+
+
+def show_multimodal_travel_guide(
+    brief_md: str,
+    poster_path: str | Path,
+    route_label: str | None = None,
+) -> None:
+    """Show text + image side by side — the core multimodal idea in the notebook."""
+    from IPython.display import HTML, Image, Markdown, display
+
+    title = route_label or "Your multimodal travel guide"
+    display(
+        HTML(
+            """
+            <style>
+              .mm-grid { display: flex; gap: 1.25rem; flex-wrap: wrap; margin: 0.5rem 0 1rem; }
+              .mm-card {
+                flex: 1 1 280px; border: 1px solid #d0d7de; border-radius: 10px;
+                padding: 0.75rem 1rem; background: #f6f8fa;
+              }
+              .mm-card h4 { margin: 0 0 0.35rem; font-size: 0.95rem; }
+              .mm-card p { margin: 0; color: #57606a; font-size: 0.9rem; }
+            </style>
+            <h3 style="margin-bottom:0.25rem;">{title}</h3>
+            <div class="mm-grid">
+              <div class="mm-card">
+                <h4>Modality 1 — Text</h4>
+                <p>Grounded travel brief from tools + LLM</p>
+              </div>
+              <div class="mm-card">
+                <h4>Modality 2 — Image</h4>
+                <p>Generated travel poster for the destination</p>
+              </div>
+            </div>
+            """.format(title=title)
+        )
+    )
+    display(Markdown(brief_md))
+    display(Image(filename=str(poster_path), width=420))

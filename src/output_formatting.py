@@ -210,9 +210,7 @@ def show_multimodal_travel_guide(
     from IPython.display import HTML, Image, Markdown, display
 
     title = route_label or "Your multimodal travel guide"
-    display(
-        HTML(
-            """
+    style = """
             <style>
               .mm-grid { display: flex; gap: 1.25rem; flex-wrap: wrap; margin: 0.5rem 0 1rem; }
               .mm-card {
@@ -222,6 +220,8 @@ def show_multimodal_travel_guide(
               .mm-card h4 { margin: 0 0 0.35rem; font-size: 0.95rem; }
               .mm-card p { margin: 0; color: #57606a; font-size: 0.9rem; }
             </style>
+    """
+    body = f"""
             <h3 style="margin-bottom:0.25rem;">{title}</h3>
             <div class="mm-grid">
               <div class="mm-card">
@@ -233,8 +233,7 @@ def show_multimodal_travel_guide(
                 <p>Generated travel poster for the destination</p>
               </div>
             </div>
-            """.format(title=title)
-        )
-    )
+    """
+    display(HTML(style + body))
     display(Markdown(brief_md))
     display(Image(filename=str(poster_path), width=420))
